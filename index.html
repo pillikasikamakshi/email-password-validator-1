@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Email & Password Validator — Automata Theory</title>
+<style>
+  :root{
+    --maroon:#0f6e8c;
+    --maroon-dark:#0b5670;
+    --navy:#0a2a3d;
+    --gold:#4fd6c4;
+    --bg:#f2f6f7;
+    --card-bg:#ffffff;
+    --text:#1c1c22;
+    --muted:#6b6b76;
+    --accept:#1c7a3d;
+    --accept-bg:#e7f6ec;
+    --reject:#a31c1c;
+    --reject-bg:#fbe9e9;
+    --border:#dee6e8;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#131318; --card-bg:#1c1c24; --text:#eceaf0; --muted:#a3a1ac; --border:#2c2c36;
+      --accept-bg:#0f2b19; --reject-bg:#301414;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131318; --card-bg:#1c1c24; --text:#eceaf0; --muted:#a3a1ac; --border:#2c2c36;
+    --accept-bg:#0f2b19; --reject-bg:#301414;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  .topbar{
+    background:var(--maroon); color:#fff; font-size:.8rem;
+    padding:.4rem 1rem; text-align:center;
+    padding-top: calc(.4rem + env(safe-area-inset-top,0px));
+  }
+  .topbar b{color:var(--gold);}
+  header{
+    background:var(--card-bg); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.8rem 1.5rem; flex-wrap:wrap; gap:.6rem;
+  }
+  .brand{display:flex; align-items:center; gap:.6rem; font-weight:700; color:var(--maroon); font-size:1.1rem;}
+  .brand span.sub{display:block; font-size:.6rem; color:var(--muted); font-weight:500; letter-spacing:.03em;}
+  nav{display:flex; gap:1.1rem; font-size:.85rem; flex-wrap:wrap;}
+  nav a{color:var(--text); text-decoration:none; opacity:.85;}
+  nav a:hover{opacity:1; color:var(--maroon);}
+  .contact-btn{background:var(--maroon); color:#fff; border:none; padding:.5rem 1rem; border-radius:20px; font-size:.8rem; cursor:pointer;}
+
+  .hero{
+    background:linear-gradient(120deg, var(--navy), #000);
+    color:#fff; padding:3rem 1.5rem; text-align:left;
+  }
+  .hero .tag{color:var(--gold); letter-spacing:.15em; font-size:.75rem; font-weight:700;}
+  .hero h1{margin:.4rem 0 .2rem; font-size:2.2rem;}
+  .hero p{color:#cfcfe0; margin:0; font-size:.95rem;}
+
+  main{max-width:760px; margin:-2rem auto 3rem; padding:0 1.2rem;}
+  .card{
+    background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+    padding:1.6rem; box-shadow:0 10px 30px rgba(0,0,0,.08); margin-top:1.5rem;
+  }
+  .card .eyebrow{color:var(--maroon); font-size:.7rem; letter-spacing:.15em; font-weight:700;}
+  .card h2{margin:.3rem 0 1.2rem; border-bottom:2px solid var(--maroon); display:inline-block; padding-bottom:.3rem;}
+  label{display:block; font-size:.85rem; font-weight:600; margin-bottom:.3rem; margin-top:1rem;}
+  input{
+    width:100%; padding:.65rem .8rem; border-radius:6px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:.95rem;
+  }
+  input:focus{outline:2px solid var(--maroon); outline-offset:1px;}
+  button.validate{
+    width:100%; margin-top:1.4rem; padding:.8rem; border:none; border-radius:6px;
+    background:var(--maroon); color:#fff; font-weight:700; letter-spacing:.05em; font-size:.9rem;
+    cursor:pointer; transition:background .15s;
+  }
+  button.validate:hover{background:var(--maroon-dark);}
+
+  .result{margin-top:1.6rem; display:none;}
+  .result.show{display:block;}
+  .result h3{margin-bottom:1rem;}
+  .check-row{
+    border-radius:8px; padding:.9rem 1rem; margin-bottom:1rem; border:1px solid var(--border);
+  }
+  .check-row.pass{background:var(--accept-bg); border-color:var(--accept);}
+  .check-row.fail{background:var(--reject-bg); border-color:var(--reject);}
+  .check-title{font-weight:700; display:flex; align-items:center; gap:.5rem;}
+  .check-title .badge{font-size:1rem;}
+  .check-row.pass .check-title{color:var(--accept);}
+  .check-row.fail .check-title{color:var(--reject);}
+  .check-desc{font-size:.85rem; color:var(--muted); margin:.3rem 0 .6rem;}
+  .dfa-label{font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.25rem;}
+  .dfa-path{
+    font-family:'Consolas','Courier New',monospace; font-size:.82rem; line-height:1.6;
+    word-break:break-word; overflow-x:auto; white-space:pre-wrap;
+  }
+  .dfa-path .state{color:var(--maroon); font-weight:700;}
+  .dfa-path .trap{color:var(--reject); font-weight:700;}
+  .dfa-path .accept{color:var(--accept); font-weight:700;}
+
+  footer{text-align:center; font-size:.75rem; color:var(--muted); padding:1.5rem;}
+</style>
+</head>
+<body>
+
+<div class="topbar">Admissions for 2026–2027 batch — <b>OPEN NOW</b></div>
+
+<header>
+  <div class="brand">
+    🎓 ASHOKA
+    <span class="sub">WOMEN'S ENGINEERING COLLEGE</span>
+  </div>
+  <nav>
+    <a href="#">Home</a><a href="#">About</a><a href="#">Programs</a>
+    <a href="#">Departments</a><a href="#">Placements</a><a href="#">Campus Life</a>
+    <a href="#">Student Corner</a>
+  </nav>
+  <button class="contact-btn">Contact Us</button>
+</header>
+
+<div class="hero">
+  <div class="tag">STUDENT PORTAL</div>
+  <h1>Email &amp; Password Validator</h1>
+  <p>Automata Theory &amp; Compiler Design — DFA-based credential validation</p>
+</div>
+
+<main>
+  <div class="card">
+    <div class="eyebrow">STUDENT LOGIN</div>
+    <h2>Student Login &amp; Validation</h2>
+
+    <label for="email">Email Address</label>
+    <input id="email" type="text" placeholder="yourname@college.edu" autocomplete="off">
+
+    <label for="password">Password</label>
+    <input id="password" type="text" placeholder="Enter password" autocomplete="off">
+
+    <button class="validate" onclick="runValidation()">VALIDATE</button>
+
+    <div class="result" id="result">
+      <h3>Validation Result</h3>
+
+      <div class="check-row" id="emailRow">
+        <div class="check-title"><span class="badge" id="emailBadge"></span><span id="emailTitle"></span></div>
+        <div class="check-desc" id="emailDesc"></div>
+        <div class="dfa-label">Email DFA Path:</div>
+        <div class="dfa-path" id="emailPath"></div>
+      </div>
+
+      <div class="check-row" id="pwRow">
+        <div class="check-title"><span class="badge" id="pwBadge"></span><span id="pwTitle"></span></div>
+        <div class="check-desc" id="pwDesc"></div>
+        <div class="dfa-label">Password DFA Path:</div>
+        <div class="dfa-path" id="pwPath"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Automata Theory &amp; Compiler Design — DFA Validator Demo</footer>
+
+<script>
+// ---------- Email DFA ----------
+// q0 start -> q1* (local part loop) -> q2 (@) -> q3..qN (must literally spell "ashokacollege.in")
+// -> ACCEPT only if the domain is exactly ashokacollege.in
+const COLLEGE_DOMAIN = 'ashokacollege.in';
+
+function validateEmailDFA(email){
+  const path = ['q0'];
+  if(!email){ path.push('qtrap'); return {valid:false, path, reason:'Email is empty'}; }
+
+  const atIndex = email.indexOf('@');
+  if(atIndex <= 0 || email.indexOf('@', atIndex+1) !== -1){
+    path.push('qtrap');
+    return {valid:false, path, reason:'Email must contain exactly one "@" with text before it'};
+  }
+
+  const local = email.slice(0, atIndex);
+  for(const c of local){
+    if(!/[a-zA-Z0-9._%+-]/.test(c)){ path.push('qtrap'); return {valid:false, path, reason:'Invalid character before "@"'}; }
+    path.push('q1');
+  }
+  path.push('q2'); // '@' transition
+
+  const domainPart = email.slice(atIndex+1).toLowerCase();
+
+  // Walk the domain against the fixed college-domain string, one state per matched char.
+  // Any mismatch or extra/missing character sends the DFA to a trap state.
+  let qn = 3;
+  for(let i = 0; i < COLLEGE_DOMAIN.length; i++){
+    const expected = COLLEGE_DOMAIN[i];
+    const actual = domainPart[i];
+    if(actual !== expected){
+      path.push('qtrap');
+      return {valid:false, path, reason:'Only @' + COLLEGE_DOMAIN + ' addresses are accepted'};
+    }
+    path.push('q'+qn);
+    qn++;
+  }
+
+  // Domain must match exactly — no trailing characters after "ashokacollege.in"
+  if(domainPart.length !== COLLEGE_DOMAIN.length){
+    path.push('qtrap');
+    return {valid:false, path, reason:'Only @' + COLLEGE_DOMAIN + ' addresses are accepted'};
+  }
+
+  path.push('ACCEPT');
+  return {valid:true, path, reason:'Valid Ashoka College email address'};
+}
+
+// ---------- Password DFA ----------
+// q0 start. Per character: q1=lowercase, q2=uppercase, q3=digit, q4=special.
+// Accept (q5) requires length>=8 AND all four classes seen; else reject.
+function validatePasswordDFA(pw){
+  const path = ['q0'];
+  if(!pw){ path.push('qtrap'); return {valid:false, path, reason:'Password is empty'}; }
+
+  let hasLower=false, hasUpper=false, hasDigit=false, hasSpecial=false;
+  for(const c of pw){
+    if(/[a-z]/.test(c)){ path.push('q1'); hasLower=true; }
+    else if(/[A-Z]/.test(c)){ path.push('q2'); hasUpper=true; }
+    else if(/[0-9]/.test(c)){ path.push('q3'); hasDigit=true; }
+    else if(/[!@#$%^&*(),.?":{}|<>_\-]/.test(c)){ path.push('q4'); hasSpecial=true; }
+    else { path.push('qtrap'); return {valid:false, path, reason:'Invalid character in password'}; }
+  }
+
+  const longEnough = pw.length >= 8;
+  const strong = longEnough && hasLower && hasUpper && hasDigit && hasSpecial;
+  path.push(strong ? 'q5' : 'qreject');
+
+  let reason;
+  if(strong) reason = 'Strong password';
+  else{
+    const missing = [];
+    if(!longEnough) missing.push('at least 8 characters');
+    if(!hasLower) missing.push('a lowercase letter');
+    if(!hasUpper) missing.push('an uppercase letter');
+    if(!hasDigit) missing.push('a digit');
+    if(!hasSpecial) missing.push('a special character');
+    reason = 'Weak password — needs ' + missing.join(', ');
+  }
+  return {valid:strong, path, reason};
+}
+
+function formatPath(pathArr){
+  return pathArr.map(s=>{
+    if(s === 'ACCEPT') return '<span class="accept">'+s+'</span>';
+    if(s === 'qtrap' || s === 'qreject') return '<span class="trap">'+s+'</span>';
+    return '<span class="state">'+s+'</span>';
+  }).join(' → ');
+}
+
+function renderRow(prefix, result, validLabel, invalidLabel){
+  const row = document.getElementById(prefix+'Row');
+  const badge = document.getElementById(prefix+'Badge');
+  const title = document.getElementById(prefix+'Title');
+  const desc = document.getElementById(prefix+'Desc');
+  const pathEl = document.getElementById(prefix+'Path');
+
+  row.className = 'check-row ' + (result.valid ? 'pass' : 'fail');
+  badge.textContent = result.valid ? '✅' : '❌';
+  title.textContent = result.valid ? validLabel : invalidLabel;
+  desc.textContent = result.reason;
+  pathEl.innerHTML = formatPath(result.path);
+}
+
+function runValidation(){
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const emailResult = validateEmailDFA(email);
+  const pwResult = validatePasswordDFA(password);
+
+  renderRow('email', emailResult, 'Email is VALID', 'Email is INVALID');
+  renderRow('pw', pwResult, 'Strong Password', 'Weak Password');
+
+  document.getElementById('result').classList.add('show');
+}
+</script>
+</body>
+</html>
